@@ -165,8 +165,8 @@ document.addEventListener('mousemove', (e) => {
     const diameter = Math.min(gifWidth, gifHeight) * (sizeSlider.value / 100);
     const radius = diameter / 2;
 
-    newCircleX = Math.max(radius, Math.min(gifWidth - radius, newCircleX));
-    newCircleY = Math.max(radius, Math.min(gifHeight - radius, newCircleY));
+    newCircleX = Math.max(radius, Math.min(gifWidth - newRadius, newCircleX));
+    newCircleY = Math.max(radius, Math.min(gifHeight - newRadius, newCircleY));
 
     xSlider.value = Math.round((newCircleX / gifWidth) * 100);
     ySlider.value = Math.round((newCircleY / gifHeight) * 100);
