@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>원형 움짤프사 만들기</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <h1>원형 움짤프사 만들기</h1>
+        <div class="main-layout">
+            <div class="control-panel">
+                <label for="fileInput" class="file-input-label">GIF 파일 선택하기</label>
+                <input type="file" id="fileInput" accept="image/gif">
+                
+                <div class="controls">
+                    <div class="card">
+                        <h2>✨ 이미지 위치/크기</h2>
+                        <label for="sizeSlider">
+                            <span>크기 조절</span>
+                            <input type="range" id="sizeSlider" min="0" max="100" value="100">
+                            <span class="value-display" id="sizeValue">100</span>%
+                        </label>
+                        <label for="xSlider">
+                            <span>가로 위치</span>
+                            <input type="range" id="xSlider" min="0" max="100" value="50">
+                            <span class="value-display" id="xValue">50</span>%
+                        </label>
+                        <label for="ySlider">
+                            <span>세로 위치</span>
+                            <input type="range" id="ySlider" min="0" max="100" value="50">
+                            <span class="value-display" id="yValue">50</span>%
+                        </label>
+                        <p class="help-text">미리보기 창에서 드래그, 휠로 조절할 수 있습니다.</p>
+                    </div>
+
+                    <div class="card">
+                        <h2>🎨 테두리</h2>
+                        <label for="borderColorPicker1">
+                            <span>색상</span>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="borderColorPicker1" value="#9F9FDF">
+                            </div>
+                        </label>
+                        <hr>
+                        <label for="borderThicknessSlider1">
+                            <span>굵기</span>
+                            <input type="range" id="borderThicknessSlider1" min="0" max="20" value="0">
+                            <span class="value-display" id="borderThicknessValue1">0</span>px
+                        </label>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <button id="saveBtn" disabled>저장하기</button>
+                    <button id="resetBtn">초기화</button>
+                </div>
+            </div>
+            <div class="preview-outer-container">
+                <div class="preview-container">
+                    <img id="gifPreview" alt="미리보기 GIF">
+                    <div id="overlayMask"></div>
+                    <p class="empty-state-text">GIF 파일을 업로드해주세요</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
