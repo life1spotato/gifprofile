@@ -29,6 +29,7 @@ let isDragging = false;
 let dragStartX, dragStartY;
 let oldSizeValue = 100;
 
+// 초기 빈 상태 설정
 gifPreview.style.display = 'none';
 overlayMask.style.display = 'none';
 emptyStateText.style.display = 'block';
@@ -45,43 +46,34 @@ fileInput.addEventListener('change', async (e) => {
         return;
     }
 
+    // 원본 파일명 저장
     const fileName = file.name;
     const dotIndex = fileName.lastIndexOf('.');
     originalFileName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
     
-    try {
-        const buffer = await file.arrayBuffer();
-        const parsedGif = parseGIF(buffer);
-        const frames = decompressFrames(parsedGif, true);
+    const buffer = await file.arrayBuffer();
+    const parsedGif = parseGIF(buffer);
+    const frames = decompressFrames(parsedGif, true);
 
-        if (!frames || frames.length === 0) {
-            alert("GIF 파일의 프레임을 디코딩할 수 없습니다. 다른 파일을 시도해보세요.");
-            return;
-        }
+    gifFrames = frames;
+    gifWidth = parsedGif.lsd.width;
+    gifHeight = parsedGif.lsd.height;
 
-        gifFrames = frames;
-        gifWidth = parsedGif.lsd.width;
-        gifHeight = parsedGif.lsd.height;
+    const gifBlob = new Blob([buffer], { type: 'image/gif' });
+    const url = URL.createObjectURL(gifBlob);
+    
+    gifPreview.src = url;
+    gifPreview.style.display = 'block';
+    overlayMask.style.display = 'block';
+    emptyStateText.style.display = 'none';
 
-        const gifBlob = new Blob([buffer], { type: 'image/gif' });
-        const url = URL.createObjectURL(gifBlob);
-        
-        gifPreview.src = url;
-        gifPreview.style.display = 'block';
-        overlayMask.style.display = 'block';
-        emptyStateText.style.display = 'none';
+    // 미리보기 컨테이너 크기를 원본 GIF 크기와 동일하게 설정
+    previewContainer.style.width = `${gifWidth}px`;
+    previewContainer.style.height = `${gifHeight}px`;
 
-        previewContainer.style.width = `${gifWidth}px`;
-        previewContainer.style.height = `${gifHeight}px`;
-
-        resetSliders();
-        updateOverlay();
-        saveBtn.disabled = false;
-    } catch (error) {
-        console.error("파일 처리 중 오류가 발생했습니다:", error);
-        alert("파일을 처리하는 중 문제가 발생했습니다. 다른 파일을 시도하거나 개발자에게 문의하세요.");
-        saveBtn.disabled = true;
-    }
+    resetSliders();
+    updateOverlay();
+    saveBtn.disabled = false;
 });
 
 const allSliders = [sizeSlider, xSlider, ySlider, borderThicknessSlider1, borderColorPicker1];
@@ -139,6 +131,7 @@ function updateOverlay() {
     borderThicknessValue1Span.textContent = borderWidth1;
 }
 
+// 마우스 드래그 이벤트
 previewContainer.addEventListener('mousedown', (e) => {
     e.preventDefault();
     if (gifFrames.length === 0) return;
@@ -189,6 +182,7 @@ document.addEventListener('mouseup', () => {
     previewContainer.style.cursor = 'grab';
 });
 
+// 마우스 휠 이벤트
 previewContainer.addEventListener('wheel', (e) => {
     if (gifFrames.length === 0) return;
     e.preventDefault();
@@ -234,86 +228,68 @@ previewContainer.addEventListener('wheel', (e) => {
     updateOverlay();
 });
 
-saveBtn.addEventListener('click', async () => {
+// GIF 저장 버튼 클릭 이벤트
+saveBtn.addEventListener('click', () => {
     if (!gifFrames.length) return alert("GIF를 먼저 업로드하세요.");
 
-    // 버튼을 비활성화하여 중복 클릭 방지
-    saveBtn.disabled = true;
-    saveBtn.textContent = '생성 중...';
+    const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: gifWidth,
+        height: gifHeight,
+        transparent: 'rgba(0,0,0,0)'
+    });
     
-    try {
-        const gif = new GIF({
-            workers: 2,
-            quality: 10,
-            width: gifWidth,
-            height: gifHeight,
-            transparent: 'rgba(0,0,0,0)'
-        });
-        
-        const highResCanvas = document.createElement('canvas');
-        highResCanvas.width = gifWidth;
-        highResCanvas.height = gifHeight;
-        const highResCtx = highResCanvas.getContext('2d', { willReadFrequently: true });
+    const highResCanvas = document.createElement('canvas');
+    highResCanvas.width = gifWidth;
+    highResCanvas.height = gifHeight;
+    const highResCtx = highResCanvas.getContext('2d', { willReadFrequently: true });
 
-        const diameter = Math.min(gifWidth, gifHeight) * (sizeSlider.value / 100);
-        const circleX = gifWidth * (xSlider.value / 100);
-        const circleY = gifHeight * (ySlider.value / 100);
-        
-        const borderWidth1 = parseInt(borderThicknessSlider1.value);
-        const borderColor1 = borderColorPicker1.value;
+    const diameter = Math.min(gifWidth, gifHeight) * (sizeSlider.value / 100);
+    const circleX = gifWidth * (xSlider.value / 100);
+    const circleY = gifHeight * (ySlider.value / 100);
+    
+    const borderWidth1 = parseInt(borderThicknessSlider1.value);
+    const borderColor1 = borderColorPicker1.value;
 
-        for (const frame of gifFrames) {
-            highResCtx.clearRect(0, 0, highResCanvas.width, highResCanvas.height);
-            
+    gifFrames.forEach(frame => {
+        highResCtx.clearRect(0, 0, highResCanvas.width, highResCanvas.height);
+        
+        highResCtx.save();
+        highResCtx.beginPath();
+        highResCtx.arc(circleX, circleY, diameter / 2, 0, Math.PI * 2);
+        highResCtx.clip();
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = frame.dims.width;
+        tempCanvas.height = frame.dims.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        const imageData = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height);
+        tempCtx.putImageData(imageData, 0, 0);
+        highResCtx.drawImage(tempCanvas, frame.dims.left, frame.dims.top, frame.dims.width, frame.dims.height);
+        
+        highResCtx.restore();
+
+        if (borderWidth1 > 0) {
             highResCtx.save();
             highResCtx.beginPath();
-            highResCtx.arc(circleX, circleY, diameter / 2, 0, Math.PI * 2);
-            highResCtx.clip();
-
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = frame.dims.width;
-            tempCanvas.height = frame.dims.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            const imageData = new ImageData(new Uint8ClampedArray(frame.patch), frame.dims.width, frame.dims.height);
-            tempCtx.putImageData(imageData, 0, 0);
-            highResCtx.drawImage(tempCanvas, frame.dims.left, frame.dims.top, frame.dims.width, frame.dims.height);
-            
+            highResCtx.arc(circleX, circleY, diameter / 2 - (borderWidth1 / 2), 0, Math.PI * 2);
+            highResCtx.lineWidth = borderWidth1;
+            highResCtx.strokeStyle = borderColor1;
+            highResCtx.stroke();
             highResCtx.restore();
-
-            if (borderWidth1 > 0) {
-                highResCtx.save();
-                highResCtx.beginPath();
-                highResCtx.arc(circleX, circleY, diameter / 2 - (borderWidth1 / 2), 0, Math.PI * 2);
-                highResCtx.lineWidth = borderWidth1;
-                highResCtx.strokeStyle = borderColor1;
-                highResCtx.stroke();
-                highResCtx.restore();
-            }
-            
-            gif.addFrame(highResCanvas, {copy: true, delay: frame.delay || 100});
         }
+        
+        gif.addFrame(highResCanvas, {copy: true, delay: frame.delay || 100});
+    });
 
-        await new Promise(resolve => {
-            gif.on('finished', blob => {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `${originalFileName}_edit.gif`;
-                
-                // 브라우저의 다운로드 차단을 피하기 위해 setTimeout 사용
-                setTimeout(() => {
-                    link.click();
-                    URL.revokeObjectURL(link.href);
-                    resolve();
-                }, 100);
-            });
-            gif.render();
-        });
+    gif.on('finished', blob => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${originalFileName}_edit.gif`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
 
-    } catch (error) {
-        console.error("GIF 생성 중 오류 발생:", error);
-        alert("GIF 파일을 생성하는 데 실패했습니다. 파일이 손상되었을 수 있습니다.");
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = '저장하기';
-    }
+    gif.render();
 });
