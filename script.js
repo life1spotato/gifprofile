@@ -1,4 +1,5 @@
 import { parseGIF, decompressFrames } from "https://esm.sh/gifuct-js@2.1.2";
+import GIF from "https://esm.sh/gif.js@0.2.0";
 
 const fileInput = document.getElementById('fileInput');
 const gifPreview = document.getElementById('gifPreview');
